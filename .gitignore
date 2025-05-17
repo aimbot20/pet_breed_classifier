@@ -33,12 +33,14 @@ ENV/
 *.swo
 
 # Model files
-*.keras
-*.h5
+# Commenting out to allow model files
+# *.keras
+# *.h5
 
 # Excel files
-*.xlsx
-*.xls
+# Commenting out to allow class indices
+# *.xlsx
+# *.xls
 
 # Misc
 .DS_Store
