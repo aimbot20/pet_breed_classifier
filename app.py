@@ -7,11 +7,16 @@ import pandas as pd
 
 app = Flask(__name__)
 
+# Get the absolute path to the current directory
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
 # Load the model
-model = tf.keras.models.load_model('my_model_50epochs.keras')
+model_path = os.path.join(BASE_DIR, 'my_model_50epochs.keras')
+model = tf.keras.models.load_model(model_path)
 
 # Load class indices and create a mapping dictionary
-class_df = pd.read_excel('class_indices.xlsx')
+class_indices_path = os.path.join(BASE_DIR, 'class_indices.xlsx')
+class_df = pd.read_excel(class_indices_path)
 # Create a dictionary mapping class indices to breed names
 class_mapping = dict(zip(class_df['Class Index'], class_df['Class Name']))
 
