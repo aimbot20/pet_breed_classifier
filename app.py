@@ -3,7 +3,21 @@ from flask import Flask, request, render_template, jsonify
 import numpy as np
 from PIL import Image
 import pandas as pd
-import tflite_runtime.interpreter as tflite
+
+# Try to import TF Lite runtime first (for Vercel), fall back to TensorFlow if not available
+try:
+    import tflite_runtime.interpreter as tflite_interpreter
+    print("Using TFLite Runtime")
+    USING_TFLITE_RUNTIME = True
+except ImportError:
+    try:
+        import tensorflow.lite as tflite_interpreter
+        print("Using TensorFlow Lite from main TensorFlow package")
+        USING_TFLITE_RUNTIME = False
+    except ImportError:
+        print("Neither TFLite Runtime nor TensorFlow is available")
+        tflite_interpreter = None
+        USING_TFLITE_RUNTIME = False
 
 app = Flask(__name__)
 
@@ -17,12 +31,15 @@ class_mapping = None
 def load_model_and_mapping():
     global interpreter, class_mapping
     try:
+        if tflite_interpreter is None:
+            raise ImportError("No TFLite implementation available")
+
         # Load the TFLite model
         model_path = os.path.join(BASE_DIR, 'optimized_model.tflite')
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found at {model_path}")
         
-        interpreter = tflite.Interpreter(model_path=model_path)
+        interpreter = tflite_interpreter.Interpreter(model_path=model_path)
         interpreter.allocate_tensors()
         print("Model loaded successfully")
 
