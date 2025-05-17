@@ -1,14 +1,9 @@
 import os
 from flask import Flask, request, render_template, jsonify
-import tensorflow as tf
 import numpy as np
 from PIL import Image
 import pandas as pd
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import tflite_runtime.interpreter as tflite
 
 app = Flask(__name__)
 
@@ -24,26 +19,23 @@ def load_model_and_mapping():
     try:
         # Load the TFLite model
         model_path = os.path.join(BASE_DIR, 'optimized_model.tflite')
-        logger.info(f"Attempting to load model from: {model_path}")
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found at {model_path}")
         
-        interpreter = tf.lite.Interpreter(model_path=model_path)
+        interpreter = tflite.Interpreter(model_path=model_path)
         interpreter.allocate_tensors()
-        logger.info("Model loaded successfully")
+        print("Model loaded successfully")
 
         # Load class indices and create a mapping dictionary
         class_indices_path = os.path.join(BASE_DIR, 'class_indices.xlsx')
-        logger.info(f"Attempting to load class indices from: {class_indices_path}")
         if not os.path.exists(class_indices_path):
             raise FileNotFoundError(f"Class indices file not found at {class_indices_path}")
         class_df = pd.read_excel(class_indices_path)
         class_mapping = dict(zip(class_df['Class Index'], class_df['Class Name']))
-        logger.info("Class mapping loaded successfully")
         
         return True
     except Exception as e:
-        logger.error(f"Error loading model or mapping: {str(e)}")
+        print(f"Error loading model or mapping: {str(e)}")
         return False
 
 def is_cat_breed(breed_name):
@@ -53,7 +45,7 @@ def is_cat_breed(breed_name):
 
 def preprocess_image(image):
     try:
-        # Resize the image to match the input size your model expects (assuming 224x224)
+        # Resize the image to match the input size your model expects (224x224)
         img = image.resize((224, 224))
         # Convert to array and normalize
         img_array = np.array(img, dtype=np.float32)
@@ -61,7 +53,7 @@ def preprocess_image(image):
         img_array = img_array / 255.0
         return img_array
     except Exception as e:
-        logger.error(f"Error in image preprocessing: {str(e)}")
+        print(f"Error in preprocessing: {str(e)}")
         raise
 
 @app.route('/')
@@ -75,7 +67,6 @@ def predict():
     try:
         # Load model and mapping if not already loaded
         if interpreter is None or class_mapping is None:
-            logger.info("Loading model and mapping...")
             success = load_model_and_mapping()
             if not success:
                 return jsonify({'error': 'Failed to load model or mapping'}), 500
@@ -87,27 +78,21 @@ def predict():
             
         # Open and preprocess the image
         image = Image.open(file.stream)
-        logger.info("Image opened successfully")
         processed_image = preprocess_image(image)
-        logger.info("Image preprocessed successfully")
         
         # Get input and output tensors
         input_details = interpreter.get_input_details()
         output_details = interpreter.get_output_details()
-        logger.info("Got input/output tensor details")
         
         # Set the input tensor
         interpreter.set_tensor(input_details[0]['index'], processed_image)
-        logger.info("Input tensor set successfully")
         
         # Run inference
         interpreter.invoke()
-        logger.info("Model inference completed")
         
         # Get the output tensor
         predictions = interpreter.get_tensor(output_details[0]['index'])
         predicted_class_index = np.argmax(predictions[0])
-        logger.info(f"Predicted class index: {predicted_class_index}")
         
         # Get the breed name from our mapping dictionary
         predicted_breed = class_mapping[predicted_class_index]
@@ -118,15 +103,13 @@ def predict():
         predicted_breed = predicted_breed.replace('_', ' ').title()
         confidence = float(predictions[0][predicted_class_index])
         
-        logger.info(f"Prediction successful: {predicted_breed} ({confidence:.2%})")
-        
         return jsonify({
             'breed': predicted_breed,
             'confidence': f'{confidence:.2%}',
             'animal_type': animal_type
         })
     except Exception as e:
-        logger.error(f"Error during prediction: {str(e)}")
+        print(f"Error during prediction: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/health')
@@ -134,6 +117,4 @@ def health():
     return jsonify({"status": "healthy"})
 
 if __name__ == '__main__':
-    # Load model at startup
-    load_model_and_mapping()
     app.run(debug=True) 
