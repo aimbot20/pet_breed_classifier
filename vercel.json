@@ -5,22 +5,29 @@
             "src": "app.py",
             "use": "@vercel/python",
             "config": {
+                "runtime": "python3.12",
                 "maxLambdaSize": "15mb"
             }
         },
         {
-            "src": "optimized_model.tflite",
-            "use": "@vercel/static"
-        },
-        {
-            "src": "class_indices.xlsx",
+            "src": "static/**",
             "use": "@vercel/static"
         }
     ],
     "routes": [
         {
+            "src": "/static/(.*)",
+            "dest": "/static/$1"
+        },
+        {
             "src": "/(.*)",
             "dest": "app.py"
         }
-    ]
+    ],
+    "env": {
+        "PYTHONPATH": ".",
+        "PYTHONUNBUFFERED": "1",
+        "FLASK_ENV": "production",
+        "FLASK_APP": "app.py"
+    }
 } 

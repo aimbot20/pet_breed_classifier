@@ -36,38 +36,56 @@ def load_model_and_mapping():
             raise ImportError("No TFLite implementation available")
 
         # Load the TFLite model
-        model_path = os.path.join(BASE_DIR, 'optimized_model.tflite')
-        print(f"Looking for model at: {model_path}")
-        if not os.path.exists(model_path):
-            # Try alternative path for Vercel
-            model_path = '/var/task/optimized_model.tflite'
-            print(f"Trying alternative model path: {model_path}")
-            if not os.path.exists(model_path):
-                raise FileNotFoundError(f"Model file not found at any location")
+        model_paths = [
+            os.path.join(BASE_DIR, 'static', 'optimized_model.tflite'),
+            os.path.join(BASE_DIR, 'optimized_model.tflite'),
+            '/var/task/static/optimized_model.tflite',
+            '/var/task/optimized_model.tflite'
+        ]
         
-        interpreter = tflite_interpreter.Interpreter(model_path=model_path)
-        interpreter.allocate_tensors()
-        print("Model loaded successfully")
+        model_loaded = False
+        for model_path in model_paths:
+            print(f"Trying model path: {model_path}")
+            if os.path.exists(model_path):
+                interpreter = tflite_interpreter.Interpreter(model_path=model_path)
+                interpreter.allocate_tensors()
+                print(f"Model loaded successfully from {model_path}")
+                model_loaded = True
+                break
+        
+        if not model_loaded:
+            raise FileNotFoundError("Model file not found in any of the expected locations")
 
         # Load class indices and create a mapping dictionary
-        class_indices_path = os.path.join(BASE_DIR, 'class_indices.xlsx')
-        print(f"Looking for class indices at: {class_indices_path}")
-        if not os.path.exists(class_indices_path):
-            # Try alternative path for Vercel
-            class_indices_path = '/var/task/class_indices.xlsx'
-            print(f"Trying alternative class indices path: {class_indices_path}")
-            if not os.path.exists(class_indices_path):
-                raise FileNotFoundError(f"Class indices file not found at any location")
+        indices_paths = [
+            os.path.join(BASE_DIR, 'static', 'class_indices.xlsx'),
+            os.path.join(BASE_DIR, 'class_indices.xlsx'),
+            '/var/task/static/class_indices.xlsx',
+            '/var/task/class_indices.xlsx'
+        ]
         
-        class_df = pd.read_excel(class_indices_path)
-        class_mapping = dict(zip(class_df['Class Index'], class_df['Class Name']))
-        print("Class mapping loaded successfully")
+        indices_loaded = False
+        for indices_path in indices_paths:
+            print(f"Trying class indices path: {indices_path}")
+            if os.path.exists(indices_path):
+                class_df = pd.read_excel(indices_path)
+                class_mapping = dict(zip(class_df['Class Index'], class_df['Class Name']))
+                print(f"Class mapping loaded successfully from {indices_path}")
+                indices_loaded = True
+                break
+        
+        if not indices_loaded:
+            raise FileNotFoundError("Class indices file not found in any of the expected locations")
         
         return True
     except Exception as e:
         print(f"Error loading model or mapping: {str(e)}")
         print(f"Current directory contents: {os.listdir(BASE_DIR)}")
+        if os.path.exists(os.path.join(BASE_DIR, 'static')):
+            print(f"Static directory contents: {os.listdir(os.path.join(BASE_DIR, 'static'))}")
         print(f"Var task contents (if exists): {os.listdir('/var/task') if os.path.exists('/var/task') else 'Not available'}")
+        if os.path.exists('/var/task/static'):
+            print(f"Var task static contents: {os.listdir('/var/task/static')}")
         return False
 
 def is_cat_breed(breed_name):

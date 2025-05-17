@@ -32,12 +32,7 @@ ENV/
 *.swp
 *.swo
 
-# Model files
-*.keras
-*.h5
-model.tflite
-# Keep optimized model
-!optimized_model.tflite
+
 
 # Excel files
 # Commenting out to allow class indices
