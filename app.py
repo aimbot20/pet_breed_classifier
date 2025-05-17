@@ -4,61 +4,38 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 import pandas as pd
-import sys
-import gdown
-import tempfile
 
 app = Flask(__name__)
 
-# Google Drive file IDs (you'll need to replace these with your actual file IDs)
-MODEL_FILE_ID = "YOUR_MODEL_FILE_ID"  # You'll need to upload the model to Google Drive and get its ID
-EXCEL_FILE_ID = "YOUR_EXCEL_FILE_ID"  # You'll need to upload the excel file to Google Drive and get its ID
+# Get the absolute path to the current directory
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # Global variables for model and class mapping
-model = None
+interpreter = None
 class_mapping = None
-temp_dir = tempfile.mkdtemp()
-
-def download_from_drive(file_id, output_path):
-    try:
-        url = f'https://drive.google.com/uc?id={file_id}'
-        gdown.download(url, output_path, quiet=False)
-        return True
-    except Exception as e:
-        print(f"Error downloading file: {str(e)}", file=sys.stderr)
-        return False
 
 def load_model_and_mapping():
-    global model, class_mapping, temp_dir
+    global interpreter, class_mapping
     try:
-        print("Starting model and mapping loading process...", file=sys.stderr)
-        
-        # Download and load the model
-        model_path = os.path.join(temp_dir, 'my_model_50epochs.keras')
+        # Load the TFLite model
+        model_path = os.path.join(BASE_DIR, 'optimized_model.tflite')
         if not os.path.exists(model_path):
-            print("Downloading model file...", file=sys.stderr)
-            if not download_from_drive(MODEL_FILE_ID, model_path):
-                raise Exception("Failed to download model file")
+            raise FileNotFoundError(f"Model file not found at {model_path}")
         
-        print("Loading model...", file=sys.stderr)
-        model = tf.keras.models.load_model(model_path)
-        print("Model loaded successfully", file=sys.stderr)
+        interpreter = tf.lite.Interpreter(model_path=model_path)
+        interpreter.allocate_tensors()
+        print("Model loaded successfully")
 
-        # Download and load class indices
-        class_indices_path = os.path.join(temp_dir, 'class_indices.xlsx')
+        # Load class indices and create a mapping dictionary
+        class_indices_path = os.path.join(BASE_DIR, 'class_indices.xlsx')
         if not os.path.exists(class_indices_path):
-            print("Downloading class indices file...", file=sys.stderr)
-            if not download_from_drive(EXCEL_FILE_ID, class_indices_path):
-                raise Exception("Failed to download class indices file")
-        
-        print("Loading class mapping...", file=sys.stderr)
+            raise FileNotFoundError(f"Class indices file not found at {class_indices_path}")
         class_df = pd.read_excel(class_indices_path)
         class_mapping = dict(zip(class_df['Class Index'], class_df['Class Name']))
-        print("Class mapping loaded successfully", file=sys.stderr)
         
         return True
     except Exception as e:
-        print(f"Error loading model or mapping: {str(e)}", file=sys.stderr)
+        print(f"Error loading model or mapping: {str(e)}")
         return False
 
 def is_cat_breed(breed_name):
@@ -73,7 +50,7 @@ def preprocess_image(image):
     img_array = tf.keras.preprocessing.image.img_to_array(img)
     img_array = tf.expand_dims(img_array, 0)
     img_array = img_array / 255.0
-    return img_array
+    return img_array.astype(np.float32)
 
 @app.route('/')
 def home():
@@ -81,10 +58,10 @@ def home():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    global model, class_mapping
+    global interpreter, class_mapping
     
     # Load model and mapping if not already loaded
-    if model is None or class_mapping is None:
+    if interpreter is None or class_mapping is None:
         success = load_model_and_mapping()
         if not success:
             return jsonify({'error': 'Failed to load model or mapping'}), 500
@@ -96,9 +73,20 @@ def predict():
         image = Image.open(file.stream)
         processed_image = preprocess_image(image)
         
-        # Make prediction
-        predictions = model.predict(processed_image)
+        # Get input and output tensors
+        input_details = interpreter.get_input_details()
+        output_details = interpreter.get_output_details()
+        
+        # Set the input tensor
+        interpreter.set_tensor(input_details[0]['index'], processed_image)
+        
+        # Run inference
+        interpreter.invoke()
+        
+        # Get the output tensor
+        predictions = interpreter.get_tensor(output_details[0]['index'])
         predicted_class_index = np.argmax(predictions[0])
+        
         # Get the breed name from our mapping dictionary
         predicted_breed = class_mapping[predicted_class_index]
         # Determine if it's a cat or dog breed
@@ -114,8 +102,12 @@ def predict():
             'animal_type': animal_type
         })
     except Exception as e:
-        print(f"Error during prediction: {str(e)}", file=sys.stderr)
+        print(f"Error during prediction: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/health')
+def health():
+    return jsonify({"status": "healthy"})
 
 if __name__ == '__main__':
     app.run(debug=True) 
