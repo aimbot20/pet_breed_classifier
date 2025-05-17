@@ -5,21 +5,21 @@
             "src": "app.py",
             "use": "@vercel/python",
             "config": {
-                "runtime": "python3.12",
-                "maxLambdaSize": "15mb",
-                "maxDuration": 60
+                "runtime": "python3.9",
+                "maxLambdaSize": "15mb"
             }
         }
     ],
     "routes": [
         {
             "src": "/(.*)",
-            "dest": "app.py",
-            "methods": ["GET", "POST", "OPTIONS"]
+            "dest": "app.py"
         }
     ],
     "env": {
         "PYTHONPATH": ".",
-        "PYTHONUNBUFFERED": "1"
+        "PYTHONUNBUFFERED": "1",
+        "FLASK_ENV": "production",
+        "FLASK_APP": "app.py"
     }
 } 
