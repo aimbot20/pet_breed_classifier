@@ -9,7 +9,7 @@ setup(
         "numpy==1.24.3",
         "pandas==1.5.3",
         "pillow==9.5.0",
-        "tflite-runtime==2.5.0",
+        "tensorflow==2.13.0",
         "openpyxl==3.0.10",
         "gunicorn==20.1.0"
     ],
