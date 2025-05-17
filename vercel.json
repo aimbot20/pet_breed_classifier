@@ -5,9 +5,8 @@
             "src": "app.py",
             "use": "@vercel/python",
             "config": {
-                "runtime": "python3.12",
                 "maxLambdaSize": "15mb",
-                "installCommand": "pip install --no-cache-dir -r requirements.txt"
+                "runtime": "python3.12"
             }
         }
     ],
@@ -18,9 +17,6 @@
         }
     ],
     "env": {
-        "PYTHONPATH": ".",
-        "PYTHONUNBUFFERED": "1",
-        "FLASK_ENV": "production",
-        "FLASK_APP": "app.py"
+        "PYTHONUNBUFFERED": "1"
     }
 } 
