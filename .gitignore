@@ -33,9 +33,11 @@ ENV/
 *.swo
 
 # Model files
-# Commenting out to allow model files
-# *.keras
-# *.h5
+*.keras
+*.h5
+model.tflite
+# Keep optimized model
+!optimized_model.tflite
 
 # Excel files
 # Commenting out to allow class indices
@@ -45,3 +47,4 @@ ENV/
 # Misc
 .DS_Store
 Thumbs.db 
+.vercel
