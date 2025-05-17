@@ -2,5 +2,13 @@
   "name": "pet-breed-classifier",
   "version": "1.0.0",
   "private": true,
-  "dependencies": {}
+  "type": "module",
+  "scripts": {
+    "build": "echo 'No build step needed - static HTML'",
+    "dev": "echo 'No dev step needed - static HTML'"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
 } 

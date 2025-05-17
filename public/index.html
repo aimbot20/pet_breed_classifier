@@ -64,6 +64,25 @@
             border-radius: 4px;
             margin: 20px 0;
         }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -77,6 +96,7 @@
         </div>
 
         <div id="error-message" class="error" style="display: none;"></div>
+        <div id="loading" class="loading"></div>
 
         <div id="preview-container" style="display: none;">
             <img id="preview-image" src="" alt="Preview">
@@ -104,6 +124,7 @@
         const predictedBreedSpan = document.getElementById('predicted-breed');
         const confidenceSpan = document.getElementById('confidence');
         const errorMessage = document.getElementById('error-message');
+        const loading = document.getElementById('loading');
 
         uploadContainer.addEventListener('click', () => fileInput.click());
         
@@ -147,18 +168,20 @@
         function showError(message) {
             errorMessage.style.display = 'block';
             errorMessage.textContent = message;
+            loading.style.display = 'none';
         }
 
         predictBtn.addEventListener('click', async () => {
             try {
                 predictBtn.disabled = true;
-                predictBtn.textContent = 'Processing...';
+                loading.style.display = 'block';
+                errorMessage.style.display = 'none';
                 
-                const formData = new FormData();
-                formData.append('image', fileInput.files[0]);
-
-                const response = await fetch('/.netlify/functions/app', {
+                const response = await fetch('/api/predict', {
                     method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({
                         image: previewImage.src
                     })
@@ -177,7 +200,7 @@
                 showError('Failed to process the image');
             } finally {
                 predictBtn.disabled = false;
-                predictBtn.textContent = 'Predict Breed';
+                loading.style.display = 'none';
             }
         });
 
@@ -188,6 +211,7 @@
             previewContainer.style.display = 'none';
             resultContainer.style.display = 'none';
             errorMessage.style.display = 'none';
+            loading.style.display = 'none';
         });
     </script>
 </body>
