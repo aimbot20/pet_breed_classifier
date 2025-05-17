@@ -1,0 +1,8 @@
+flask==2.0.3
+Werkzeug==2.0.3
+numpy==1.26.3
+pandas==2.1.4
+pillow==10.2.0
+tensorflow-lite==2.16.1
+openpyxl==3.1.2
+gunicorn==21.2.0

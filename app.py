@@ -1,15 +1,21 @@
 import os
+import sys
 from flask import Flask, request, render_template, jsonify
 import numpy as np
 from PIL import Image
 import pandas as pd
 import tflite_runtime.interpreter as tflite
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
 # Get the absolute path to the current directory
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-print(f"Base directory: {BASE_DIR}")
+logger.info(f"Base directory: {BASE_DIR}")
 
 # Global variables for model and class mapping
 interpreter = None
@@ -26,15 +32,24 @@ def load_model_and_mapping():
             '/var/task/optimized_model.tflite'
         ]
         
+        # Log current directory contents
+        logger.info(f"Current directory contents: {os.listdir(BASE_DIR)}")
+        if os.path.exists(os.path.join(BASE_DIR, 'static')):
+            logger.info(f"Static directory contents: {os.listdir(os.path.join(BASE_DIR, 'static'))}")
+        
         model_loaded = False
         for model_path in model_paths:
-            print(f"Trying model path: {model_path}")
+            logger.info(f"Trying model path: {model_path}")
             if os.path.exists(model_path):
-                interpreter = tflite.Interpreter(model_path=model_path)
-                interpreter.allocate_tensors()
-                print(f"Model loaded successfully from {model_path}")
-                model_loaded = True
-                break
+                try:
+                    interpreter = tflite.Interpreter(model_path=model_path)
+                    interpreter.allocate_tensors()
+                    logger.info(f"Model loaded successfully from {model_path}")
+                    model_loaded = True
+                    break
+                except Exception as e:
+                    logger.error(f"Error loading model from {model_path}: {str(e)}")
+                    continue
         
         if not model_loaded:
             raise FileNotFoundError("Model file not found in any of the expected locations")
@@ -49,26 +64,26 @@ def load_model_and_mapping():
         
         indices_loaded = False
         for indices_path in indices_paths:
-            print(f"Trying class indices path: {indices_path}")
+            logger.info(f"Trying class indices path: {indices_path}")
             if os.path.exists(indices_path):
-                class_df = pd.read_excel(indices_path)
-                class_mapping = dict(zip(class_df['Class Index'], class_df['Class Name']))
-                print(f"Class mapping loaded successfully from {indices_path}")
-                indices_loaded = True
-                break
+                try:
+                    class_df = pd.read_excel(indices_path)
+                    class_mapping = dict(zip(class_df['Class Index'], class_df['Class Name']))
+                    logger.info(f"Class mapping loaded successfully from {indices_path}")
+                    indices_loaded = True
+                    break
+                except Exception as e:
+                    logger.error(f"Error loading class indices from {indices_path}: {str(e)}")
+                    continue
         
         if not indices_loaded:
             raise FileNotFoundError("Class indices file not found in any of the expected locations")
         
         return True
     except Exception as e:
-        print(f"Error loading model or mapping: {str(e)}")
-        print(f"Current directory contents: {os.listdir(BASE_DIR)}")
-        if os.path.exists(os.path.join(BASE_DIR, 'static')):
-            print(f"Static directory contents: {os.listdir(os.path.join(BASE_DIR, 'static'))}")
-        print(f"Var task contents (if exists): {os.listdir('/var/task') if os.path.exists('/var/task') else 'Not available'}")
-        if os.path.exists('/var/task/static'):
-            print(f"Var task static contents: {os.listdir('/var/task/static')}")
+        logger.error(f"Error in load_model_and_mapping: {str(e)}")
+        logger.error(f"Python version: {sys.version}")
+        logger.error(f"Current working directory: {os.getcwd()}")
         return False
 
 def is_cat_breed(breed_name):
@@ -91,7 +106,11 @@ def preprocess_image(image):
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        logger.error(f"Error in home route: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -100,12 +119,14 @@ def predict():
     try:
         # Load model and mapping if not already loaded
         if interpreter is None or class_mapping is None:
-            print("Loading model and mapping...")
+            logger.info("Loading model and mapping...")
             success = load_model_and_mapping()
             if not success:
                 return jsonify({'error': 'Failed to load model or mapping. Check server logs for details.'}), 500
         
         # Get the image from the POST request
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
         file = request.files['file']
         if not file:
             return jsonify({'error': 'No file provided'}), 400
@@ -143,12 +164,22 @@ def predict():
             'animal_type': animal_type
         })
     except Exception as e:
-        print(f"Error during prediction: {str(e)}")
+        logger.error(f"Error in predict route: {str(e)}")
+        logger.error(f"Stack trace: ", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/health')
 def health():
-    return jsonify({"status": "healthy"})
+    try:
+        return jsonify({
+            "status": "healthy",
+            "python_version": sys.version,
+            "current_dir": os.getcwd(),
+            "dir_contents": os.listdir(os.getcwd())
+        })
+    except Exception as e:
+        logger.error(f"Error in health route: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Try to load model at startup in development
