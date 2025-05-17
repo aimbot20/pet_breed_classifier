@@ -5,40 +5,53 @@ import numpy as np
 from PIL import Image
 import pandas as pd
 import sys
+import gdown
+import tempfile
 
 app = Flask(__name__)
 
-# Get the absolute path to the current directory
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-
-# For Vercel deployment
-STATIC_DIR = os.path.join(BASE_DIR, '.vercel', 'output', 'static')
-if os.path.exists(STATIC_DIR):
-    BASE_DIR = STATIC_DIR
+# Google Drive file IDs (you'll need to replace these with your actual file IDs)
+MODEL_FILE_ID = "YOUR_MODEL_FILE_ID"  # You'll need to upload the model to Google Drive and get its ID
+EXCEL_FILE_ID = "YOUR_EXCEL_FILE_ID"  # You'll need to upload the excel file to Google Drive and get its ID
 
 # Global variables for model and class mapping
 model = None
 class_mapping = None
+temp_dir = tempfile.mkdtemp()
+
+def download_from_drive(file_id, output_path):
+    try:
+        url = f'https://drive.google.com/uc?id={file_id}'
+        gdown.download(url, output_path, quiet=False)
+        return True
+    except Exception as e:
+        print(f"Error downloading file: {str(e)}", file=sys.stderr)
+        return False
 
 def load_model_and_mapping():
-    global model, class_mapping
+    global model, class_mapping, temp_dir
     try:
-        print("Current working directory:", os.getcwd(), file=sys.stderr)
-        print("BASE_DIR:", BASE_DIR, file=sys.stderr)
+        print("Starting model and mapping loading process...", file=sys.stderr)
         
-        # Load the model
-        model_path = os.path.join(BASE_DIR, 'my_model_50epochs.keras')
-        print("Looking for model at:", model_path, file=sys.stderr)
+        # Download and load the model
+        model_path = os.path.join(temp_dir, 'my_model_50epochs.keras')
         if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model file not found at {model_path}")
+            print("Downloading model file...", file=sys.stderr)
+            if not download_from_drive(MODEL_FILE_ID, model_path):
+                raise Exception("Failed to download model file")
+        
+        print("Loading model...", file=sys.stderr)
         model = tf.keras.models.load_model(model_path)
         print("Model loaded successfully", file=sys.stderr)
 
-        # Load class indices and create a mapping dictionary
-        class_indices_path = os.path.join(BASE_DIR, 'class_indices.xlsx')
-        print("Looking for class indices at:", class_indices_path, file=sys.stderr)
+        # Download and load class indices
+        class_indices_path = os.path.join(temp_dir, 'class_indices.xlsx')
         if not os.path.exists(class_indices_path):
-            raise FileNotFoundError(f"Class indices file not found at {class_indices_path}")
+            print("Downloading class indices file...", file=sys.stderr)
+            if not download_from_drive(EXCEL_FILE_ID, class_indices_path):
+                raise Exception("Failed to download class indices file")
+        
+        print("Loading class mapping...", file=sys.stderr)
         class_df = pd.read_excel(class_indices_path)
         class_mapping = dict(zip(class_df['Class Index'], class_df['Class Name']))
         print("Class mapping loaded successfully", file=sys.stderr)
@@ -101,11 +114,8 @@ def predict():
             'animal_type': animal_type
         })
     except Exception as e:
-        print(f"Error during prediction: {str(e)}")
+        print(f"Error during prediction: {str(e)}", file=sys.stderr)
         return jsonify({'error': str(e)}), 500
-
-# Load model and mapping at startup
-load_model_and_mapping()
 
 if __name__ == '__main__':
     app.run(debug=True) 
