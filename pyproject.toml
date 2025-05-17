@@ -1,34 +1,37 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=68.0.0", "wheel>=0.40.0"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-lab-assessment"
 version = "1.0.0"
 description = "AI Lab Assessment Project"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dependencies = [
-    "flask==2.0.3",
-    "Werkzeug==2.0.3",
-    "numpy==1.24.3",
-    "pandas==1.5.3",
-    "pillow==9.5.0",
-    "tflite-runtime==2.5.0",
-    "openpyxl==3.0.10",
-    "gunicorn==20.1.0"
+    "Flask==3.0.0",
+    "Werkzeug==3.1.3",
+    "numpy==1.26.4",
+    "pandas==2.1.3",
+    "Pillow==10.1.0",
+    "tensorflow==2.19.0",
+    "openpyxl==3.1.2",
+    "gunicorn==21.2.0",
+    "click==8.1.8",
+    "itsdangerous==2.2.0",
+    "Jinja2==3.1.6",
+    "MarkupSafe==3.0.2"
 ]
 
-[tool.hatch.metadata]
-allow-direct-references = true
+[tool.setuptools]
+packages = ["app"]
 
-[tool.hatch.build.targets.wheel]
-packages = ["app.py"]
+[project.urls]
+Homepage = "https://github.com/yourusername/ai-lab-assessment"
 
-[tool.hatch.envs.default]
-dependencies = [
-    "pytest>=7.0",
-    "pytest-cov>=4.0",
-]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
 
-[[tool.hatch.envs.test.matrix]]
-python = ["39", "310", "311"] 
+[tool.black]
+line-length = 88
+target-version = ["py312"] 
