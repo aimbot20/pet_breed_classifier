@@ -1,7 +1,10 @@
 #!/bin/bash
 
-# Install dependencies
-pip install -r requirements.txt
+# Install build dependencies
+pip install hatch
+
+# Install project dependencies
+pip install -e .
 
 # Create necessary directories
 mkdir -p .vercel/output/static
@@ -13,6 +16,6 @@ cp class_indices.xlsx .vercel/output/static/
 
 # Copy the application files
 cp app.py .vercel/output/
-cp requirements.txt .vercel/output/
+cp pyproject.toml .vercel/output/
 
 echo "Build completed!" 
