@@ -4,20 +4,15 @@ import numpy as np
 from PIL import Image
 import pandas as pd
 
-# Try to import TF Lite runtime first (for Vercel), fall back to TensorFlow if not available
+# Try to import TensorFlow, if not available use TFLite Runtime
 try:
-    import tflite_runtime.interpreter as tflite_interpreter
-    print("Using TFLite Runtime")
-    USING_TFLITE_RUNTIME = True
+    import tensorflow as tf
+    print("Using TensorFlow for inference")
+    Interpreter = tf.lite.Interpreter
 except ImportError:
-    try:
-        import tensorflow.lite as tflite_interpreter
-        print("Using TensorFlow Lite from main TensorFlow package")
-        USING_TFLITE_RUNTIME = False
-    except ImportError:
-        print("Neither TFLite Runtime nor TensorFlow is available")
-        tflite_interpreter = None
-        USING_TFLITE_RUNTIME = False
+    import tflite_runtime.interpreter as tflite
+    print("Using TFLite Runtime for inference")
+    Interpreter = tflite.Interpreter
 
 app = Flask(__name__)
 
@@ -32,9 +27,6 @@ class_mapping = None
 def load_model_and_mapping():
     global interpreter, class_mapping
     try:
-        if tflite_interpreter is None:
-            raise ImportError("No TFLite implementation available")
-
         # Load the TFLite model
         model_paths = [
             os.path.join(BASE_DIR, 'static', 'optimized_model.tflite'),
@@ -47,7 +39,7 @@ def load_model_and_mapping():
         for model_path in model_paths:
             print(f"Trying model path: {model_path}")
             if os.path.exists(model_path):
-                interpreter = tflite_interpreter.Interpreter(model_path=model_path)
+                interpreter = Interpreter(model_path=model_path)
                 interpreter.allocate_tensors()
                 print(f"Model loaded successfully from {model_path}")
                 model_loaded = True

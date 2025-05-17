@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r vercel_requirements.txt
 
 # Create necessary directories
 mkdir -p .vercel/output/static
@@ -13,6 +13,6 @@ cp class_indices.xlsx .vercel/output/static/
 
 # Copy the application files
 cp app.py .vercel/output/
-cp requirements.txt .vercel/output/
+cp vercel_requirements.txt .vercel/output/requirements.txt
 
 echo "Build completed!" 
