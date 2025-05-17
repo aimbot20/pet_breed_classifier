@@ -23,6 +23,7 @@ app = Flask(__name__)
 
 # Get the absolute path to the current directory
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+print(f"Base directory: {BASE_DIR}")
 
 # Global variables for model and class mapping
 interpreter = None
@@ -36,8 +37,13 @@ def load_model_and_mapping():
 
         # Load the TFLite model
         model_path = os.path.join(BASE_DIR, 'optimized_model.tflite')
+        print(f"Looking for model at: {model_path}")
         if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model file not found at {model_path}")
+            # Try alternative path for Vercel
+            model_path = '/var/task/optimized_model.tflite'
+            print(f"Trying alternative model path: {model_path}")
+            if not os.path.exists(model_path):
+                raise FileNotFoundError(f"Model file not found at any location")
         
         interpreter = tflite_interpreter.Interpreter(model_path=model_path)
         interpreter.allocate_tensors()
@@ -45,14 +51,23 @@ def load_model_and_mapping():
 
         # Load class indices and create a mapping dictionary
         class_indices_path = os.path.join(BASE_DIR, 'class_indices.xlsx')
+        print(f"Looking for class indices at: {class_indices_path}")
         if not os.path.exists(class_indices_path):
-            raise FileNotFoundError(f"Class indices file not found at {class_indices_path}")
+            # Try alternative path for Vercel
+            class_indices_path = '/var/task/class_indices.xlsx'
+            print(f"Trying alternative class indices path: {class_indices_path}")
+            if not os.path.exists(class_indices_path):
+                raise FileNotFoundError(f"Class indices file not found at any location")
+        
         class_df = pd.read_excel(class_indices_path)
         class_mapping = dict(zip(class_df['Class Index'], class_df['Class Name']))
+        print("Class mapping loaded successfully")
         
         return True
     except Exception as e:
         print(f"Error loading model or mapping: {str(e)}")
+        print(f"Current directory contents: {os.listdir(BASE_DIR)}")
+        print(f"Var task contents (if exists): {os.listdir('/var/task') if os.path.exists('/var/task') else 'Not available'}")
         return False
 
 def is_cat_breed(breed_name):
@@ -84,9 +99,10 @@ def predict():
     try:
         # Load model and mapping if not already loaded
         if interpreter is None or class_mapping is None:
+            print("Loading model and mapping...")
             success = load_model_and_mapping()
             if not success:
-                return jsonify({'error': 'Failed to load model or mapping'}), 500
+                return jsonify({'error': 'Failed to load model or mapping. Check server logs for details.'}), 500
         
         # Get the image from the POST request
         file = request.files['file']
@@ -134,4 +150,7 @@ def health():
     return jsonify({"status": "healthy"})
 
 if __name__ == '__main__':
+    # Try to load model at startup in development
+    if not os.getenv('VERCEL_ENV'):
+        load_model_and_mapping()
     app.run(debug=True) 

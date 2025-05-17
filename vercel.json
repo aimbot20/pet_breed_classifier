@@ -3,7 +3,18 @@
     "builds": [
         {
             "src": "app.py",
-            "use": "@vercel/python"
+            "use": "@vercel/python",
+            "config": {
+                "maxLambdaSize": "15mb"
+            }
+        },
+        {
+            "src": "optimized_model.tflite",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "class_indices.xlsx",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
