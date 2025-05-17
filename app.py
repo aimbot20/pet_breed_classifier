@@ -3,16 +3,7 @@ from flask import Flask, request, render_template, jsonify
 import numpy as np
 from PIL import Image
 import pandas as pd
-
-# Try to import TensorFlow, if not available use TFLite Runtime
-try:
-    import tensorflow as tf
-    print("Using TensorFlow for inference")
-    Interpreter = tf.lite.Interpreter
-except ImportError:
-    import tflite_runtime.interpreter as tflite
-    print("Using TFLite Runtime for inference")
-    Interpreter = tflite.Interpreter
+import tflite_runtime.interpreter as tflite
 
 app = Flask(__name__)
 
@@ -39,7 +30,7 @@ def load_model_and_mapping():
         for model_path in model_paths:
             print(f"Trying model path: {model_path}")
             if os.path.exists(model_path):
-                interpreter = Interpreter(model_path=model_path)
+                interpreter = tflite.Interpreter(model_path=model_path)
                 interpreter.allocate_tensors()
                 print(f"Model loaded successfully from {model_path}")
                 model_loaded = True
