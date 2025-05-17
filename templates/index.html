@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Breed Classifier</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            color: #e2e8f0;
+            background: linear-gradient(135deg, #1a1c2e 0%, #2d3748 100%);
+        }
+
+        .site-title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 900;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #60a5fa 0%, #7c3aed 50%, #db2777 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
+            position: relative;
+            display: inline-block;
+        }
+
+        .site-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #7c3aed, transparent);
+        }
+
+        .subtitle {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 300;
+            color: #a5b4fc;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+            letter-spacing: 0.5px;
+        }
+
+        .carousel {
+            position: relative;
+            height: 550px;
+            overflow: hidden;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 1024px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .carousel-slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: scale(1.1);
+            transition: all 0.6s ease-in-out;
+            background-size: cover;
+            background-position: center;
+            display: none;
+        }
+
+        .carousel-slide.active {
+            opacity: 1;
+            transform: scale(1);
+            display: block;
+        }
+
+        .carousel-slide.prev {
+            opacity: 0;
+            transform: translateX(-100%);
+        }
+
+        .carousel-slide.next {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+
+        .carousel-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 50%;
+            z-index: 10;
+            transition: all 0.3s ease;
+            font-size: 24px;
+        }
+
+        .carousel-arrow:hover {
+            background: rgba(0, 0, 0, 0.8);
+            width: 55px;
+            height: 55px;
+        }
+
+        .carousel-arrow.left {
+            left: 1.5rem;
+        }
+
+        .carousel-arrow.right {
+            right: 1.5rem;
+        }
+
+        .carousel-dots {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 0.8rem;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .carousel-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .carousel-dot:hover {
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .carousel-dot.active {
+            background: white;
+            transform: scale(1.2);
+        }
+
+        .upload-area {
+            border: 2px dashed #4a5568;
+            background: rgba(17, 24, 39, 0.6);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .upload-area:hover {
+            border-color: #4299e1;
+            background: rgba(17, 24, 39, 0.8);
+            transform: translateY(-2px);
+        }
+        .preview-image {
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        .error-message {
+            display: none;
+            color: #fc8181;
+            margin-top: 0.5rem;
+        }
+        .glass-card {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        .btn-glow:hover {
+            box-shadow: 0 0 20px #4299e1;
+        }
+        .result-card {
+            background: rgba(17, 24, 39, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .header-gradient {
+            background: linear-gradient(135deg, #60a5fa 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .feature-card {
+            background: rgba(17, 24, 39, 0.6);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(12px);
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            background: rgba(17, 24, 39, 0.8);
+        }
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        .layout-container {
+            display: grid;
+            grid-template-columns: 280px minmax(auto, 1024px) 280px;
+            gap: 2rem;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .main-content {
+            max-width: 1024px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .side-content {
+            padding: 20px;
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .stat-item {
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #60a5fa 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tip-card {
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 10px;
+            border-left: 3px solid #60a5fa;
+            transition: all 0.3s ease;
+        }
+
+        .tip-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        @media (max-width: 1600px) {
+            .layout-container {
+                grid-template-columns: 1fr;
+            }
+            .side-content {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="py-8">
+    <div class="layout-container">
+        <!-- Left Side Content -->
+        <div class="side-content">
+            <h3 class="text-xl font-semibold text-blue-400 mb-4">Quick Stats</h3>
+            <div class="stat-item">
+                <div class="stat-number">132</div>
+                <div class="text-gray-400">Breeds Supported</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">95%</div>
+                <div class="text-gray-400">Accuracy Rate</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">0.5s</div>
+                <div class="text-gray-400">Average Response Time</div>
+            </div>
+            <div class="mt-6 text-sm text-gray-400">
+                * Stats based on model performance
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="text-center mb-12">
+                <h1 class="site-title text-6xl mb-6">Pet Breed Classifier</h1>
+                <p class="subtitle text-xl">Discover Your Pet's Unique Identity with AI Magic</p>
+            </header>
+
+            <!-- Image Carousel -->
+            <div class="carousel mb-12">
+                <div class="carousel-slide active" style="background-image: url('https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=2000&q=80')"></div>
+                <div class="carousel-slide" style="background-image: url('https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=2000&q=80')"></div>
+                <div class="carousel-slide" style="background-image: url('https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=2000&q=80')"></div>
+                <div class="carousel-slide" style="background-image: url('https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=2000&q=80')"></div>
+                <div class="carousel-slide" style="background-image: url('https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=2000&q=80')"></div>
+                <div class="carousel-slide" style="background-image: url('https://images.unsplash.com/photo-1561037404-61cd46aa615b?auto=format&fit=crop&w=2000&q=80')"></div>
+                
+                <div class="carousel-arrow left">❮</div>
+                <div class="carousel-arrow right">❯</div>
+                
+                <div class="carousel-dots">
+                    <div class="carousel-dot active"></div>
+                    <div class="carousel-dot"></div>
+                    <div class="carousel-dot"></div>
+                    <div class="carousel-dot"></div>
+                    <div class="carousel-dot"></div>
+                    <div class="carousel-dot"></div>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="grid md:grid-cols-3 gap-6 mb-12">
+                <div class="feature-card">
+                    <div class="text-3xl mb-3">🎯</div>
+                    <h3 class="text-lg font-semibold text-blue-400 mb-2">132 Breeds</h3>
+                    <p class="text-gray-400">Accurately identifies 132 different breeds of cats and dogs</p>
+                </div>
+                <div class="feature-card">
+                    <div class="text-3xl mb-3">⚡</div>
+                    <h3 class="text-lg font-semibold text-purple-400 mb-2">Instant Results</h3>
+                    <p class="text-gray-400">Get breed predictions in seconds with confidence scores</p>
+                </div>
+                <div class="feature-card">
+                    <div class="text-3xl mb-3">🤖</div>
+                    <h3 class="text-lg font-semibold text-green-400 mb-2">AI Powered</h3>
+                    <p class="text-gray-400">Using advanced deep learning technology</p>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-8 mb-12">
+                <div id="upload-container" class="upload-area rounded-xl p-8 text-center cursor-pointer">
+                    <div class="mb-4">
+                        <svg class="mx-auto h-16 w-16 text-gray-400 floating" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <p class="mt-4 text-lg text-gray-300">Click to upload or drag and drop</p>
+                        <p class="text-sm text-gray-400 mt-2">PNG, JPG, JPEG up to 10MB</p>
+                        <div class="mt-4 text-sm text-blue-400">
+                            <strong class="text-blue-300">Important:</strong>
+                            <ul class="list-disc text-left max-w-md mx-auto mt-2 space-y-2">
+                                <li>For Google Images: Right-click the image and select "Save image as" first</li>
+                                <li>Or upload an image from your computer</li>
+                                <li>Direct drag from Google Images won't work</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <input type="file" id="file-input" class="hidden" accept="image/*">
+                </div>
+
+                <div id="error-message" class="error-message text-center mt-4 text-red-400"></div>
+
+                <div id="preview-container" class="mt-8 hidden">
+                    <img id="preview-image" class="preview-image mx-auto" src="" alt="Preview">
+                    <div class="mt-6 text-center space-x-4">
+                        <button id="predict-btn" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 btn-glow font-medium">
+                            Predict Breed
+                        </button>
+                        <button id="reset-btn" class="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-8 py-3 rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 font-medium">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                <div id="result-container" class="mt-8 hidden">
+                    <div class="result-card">
+                        <h2 class="text-3xl font-semibold text-center mb-6 text-blue-400">Prediction Result</h2>
+                        <div class="space-y-4">
+                            <p class="text-xl text-center">
+                                <span id="animal-type" class="font-bold text-purple-400 text-2xl block mb-2"></span>
+                            </p>
+                            <p class="text-lg text-center">
+                                Breed: <span id="predicted-breed" class="font-bold text-blue-400 ml-2"></span>
+                            </p>
+                            <p class="text-lg text-center">
+                                Confidence: <span id="confidence" class="font-bold text-green-400 ml-2"></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How It Works Section -->
+            <div class="glass-card rounded-2xl p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-center mb-6 text-blue-400">How It Works</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="text-center">
+                        <div class="text-3xl mb-3">📸</div>
+                        <h3 class="text-lg font-semibold text-purple-400 mb-2">1. Upload Photo</h3>
+                        <p class="text-gray-400">Upload a clear photo of your cat or dog</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl mb-3">🔍</div>
+                        <h3 class="text-lg font-semibold text-purple-400 mb-2">2. AI Analysis</h3>
+                        <p class="text-gray-400">Our AI model analyzes the image</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl mb-3">✨</div>
+                        <h3 class="text-lg font-semibold text-purple-400 mb-2">3. Get Results</h3>
+                        <p class="text-gray-400">Receive accurate breed prediction</p>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="text-center mt-12 text-gray-400">
+                <p class="mb-2">Powered by Advanced AI Technology • Made with ❤️</p>
+                <p class="text-sm">Capable of identifying 132 different breeds with high accuracy</p>
+            </footer>
+        </div>
+
+        <!-- Right Side Content -->
+        <div class="side-content">
+            <h3 class="text-xl font-semibold text-purple-400 mb-4">Pro Tips</h3>
+            <div class="tip-card">
+                <h4 class="text-blue-400 font-medium mb-2">Best Photo Practices</h4>
+                <p class="text-gray-400 text-sm">Clear, well-lit photos from the front or side work best</p>
+            </div>
+            <div class="tip-card">
+                <h4 class="text-blue-400 font-medium mb-2">Multiple Angles</h4>
+                <p class="text-gray-400 text-sm">Try different angles if unsure about results</p>
+            </div>
+            <div class="tip-card">
+                <h4 class="text-blue-400 font-medium mb-2">Image Quality</h4>
+                <p class="text-gray-400 text-sm">Higher resolution images yield better results</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadContainer = document.getElementById('upload-container');
+        const fileInput = document.getElementById('file-input');
+        const previewContainer = document.getElementById('preview-container');
+        const previewImage = document.getElementById('preview-image');
+        const predictBtn = document.getElementById('predict-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const resultContainer = document.getElementById('result-container');
+        const predictedBreedSpan = document.getElementById('predicted-breed');
+        const confidenceSpan = document.getElementById('confidence');
+        const errorMessage = document.getElementById('error-message');
+        const animalTypeSpan = document.getElementById('animal-type');
+
+        uploadContainer.addEventListener('click', () => fileInput.click());
+        
+        uploadContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadContainer.classList.add('border-blue-500');
+        });
+
+        uploadContainer.addEventListener('dragleave', () => {
+            uploadContainer.classList.remove('border-blue-500');
+        });
+
+        uploadContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadContainer.classList.remove('border-blue-500');
+            
+            const items = e.dataTransfer.items;
+            if (items && items.length > 0) {
+                const item = items[0];
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    handleFile(file);
+                } else {
+                    showError("Please drag an actual image file, not a link. Save the image to your computer first.");
+                }
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            handleFile(file);
+        });
+
+        function showError(message) {
+            errorMessage.style.display = 'block';
+            errorMessage.textContent = message;
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        function handleFile(file) {
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    uploadContainer.classList.add('hidden');
+                    previewContainer.classList.remove('hidden');
+                    resultContainer.classList.add('hidden');
+                    errorMessage.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            } else if (file) {
+                showError("Please select a valid image file (PNG, JPG, or JPEG)");
+            }
+        }
+
+        predictBtn.addEventListener('click', async () => {
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                predictBtn.disabled = true;
+                predictBtn.textContent = 'Predicting...';
+                
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                predictedBreedSpan.textContent = result.breed;
+                confidenceSpan.textContent = result.confidence;
+                animalTypeSpan.textContent = result.animal_type;
+                resultContainer.classList.remove('hidden');
+            } catch (error) {
+                showError("Error: " + error.message);
+            } finally {
+                predictBtn.disabled = false;
+                predictBtn.textContent = 'Predict Breed';
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            fileInput.value = '';
+            previewImage.src = '';
+            uploadContainer.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+            resultContainer.classList.add('hidden');
+            errorMessage.style.display = 'none';
+        });
+
+        // New Carousel JavaScript
+        const slides = document.querySelectorAll('.carousel-slide');
+        const dots = document.querySelectorAll('.carousel-dot');
+        const leftArrow = document.querySelector('.carousel-arrow.left');
+        const rightArrow = document.querySelector('.carousel-arrow.right');
+        let currentSlide = 0;
+
+        function showSlide(index) {
+            const slides = document.querySelectorAll('.carousel-slide');
+            const dots = document.querySelectorAll('.carousel-dot');
+            
+            slides.forEach(slide => {
+                slide.classList.remove('active', 'prev', 'next');
+                slide.style.display = 'none';
+            });
+            dots.forEach(dot => dot.classList.remove('active'));
+            
+            currentSlide = (index + slides.length) % slides.length;
+            const prevSlide = (currentSlide - 1 + slides.length) % slides.length;
+            const nextSlide = (currentSlide + 1) % slides.length;
+            
+            slides[prevSlide].classList.add('prev');
+            slides[currentSlide].classList.add('active');
+            slides[nextSlide].classList.add('next');
+            
+            slides[prevSlide].style.display = 'block';
+            slides[currentSlide].style.display = 'block';
+            slides[nextSlide].style.display = 'block';
+            
+            dots[currentSlide].classList.add('active');
+        }
+
+        leftArrow.addEventListener('click', () => showSlide(currentSlide - 1));
+        rightArrow.addEventListener('click', () => showSlide(currentSlide + 1));
+
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => showSlide(index));
+        });
+
+        // Auto advance slides every 5 seconds
+        setInterval(() => showSlide(currentSlide + 1), 5000);
+    </script>
+</body>
+</html> 
